@@ -13,13 +13,13 @@
 #define FILENAME "map.txt"
 
 struct Position{
-    unsigned char x;
-    unsigned char y;
+    char x;
+    char y;
 };
 
 struct Leaf{
-    unsigned char x;
-    unsigned char y;
+    char x;
+    char y;
     int previous;
 };
 
@@ -108,37 +108,57 @@ int main(void){
         
         for (int i = 0; i < branches; i+=4){
             position++;
-            if (tree[position-(id+1)].x >= 0 && (tree[position-(id+1)].y-1) >= 0){
-                tree[position].x = tree[position-(id+1)].x;
-                tree[position].y = tree[position-(id+1)].y -1;
-                tree[position].previous = position-(id+1);
+            if (tree[position-(id+1)].x >= 0 && (tree[position-(id+1)].y-1) >= 0){ // si les coordonnées ne sortent pas du tableau
+                if (unitsArray[((tree[position-(id+1)].y-1)*X) + tree[position-(id+1)].x] == 7 || unitsArray[((tree[position-(id+1)].y-1)*X) + tree[position-(id+1)].x] == 8){ // si il y a des obstacles
+                    tree[position].x = -1;
+                    tree[position].y = -1;
+                } else {
+                    tree[position].x = tree[position-(id+1)].x;
+                    tree[position].y = tree[position-(id+1)].y -1;
+                    tree[position].previous = position-(id+1);
+                }
             } else {
                 tree[position].x = -1;
                 tree[position].y = -1;
             }
             position++;
             if ((tree[position-(id+2)].x+1) >= 0 && tree[position-(id+2)].y >= 0){
-                tree[position].x = tree[position-(id+2)].x +1;
-                tree[position].y = tree[position-(id+2)].y;
-                tree[position].previous = position-(id+2);
+                if (unitsArray[(tree[position-(id+2)].y*X) + tree[position-(id+2)].x+1] == 7 || unitsArray[(tree[position-(id+2)].y*X) + tree[position-(id+2)].x+1] == 8){
+                    tree[position].x = -1;
+                    tree[position].y = -1;
+                } else {
+                    tree[position].x = tree[position-(id+2)].x +1;
+                    tree[position].y = tree[position-(id+2)].y;
+                    tree[position].previous = position-(id+2);
+                }
             } else {
                 tree[position].x = -1;
                 tree[position].y = -1;
             }
             position++;
             if (tree[position-(id+3)].x >= 0 && (tree[position-(id+3)].y+1) >= 0){
-                tree[position].x = tree[position-(id+3)].x;
-                tree[position].y = tree[position-(id+3)].y +1;
-                tree[position].previous = position-(id+3);
+                if (unitsArray[((tree[position-(id+3)].y+1)*X) + tree[position-(id+3)].x] == 7 || unitsArray[((tree[position-(id+3)].y+1)*X) + tree[position-(id+3)].x] == 8){
+                    tree[position].x = -1;
+                    tree[position].y = -1;
+                } else {
+                    tree[position].x = tree[position-(id+3)].x;
+                    tree[position].y = tree[position-(id+3)].y +1;
+                    tree[position].previous = position-(id+3);
+                }
             } else {
                 tree[position].x = -1;
                 tree[position].y = -1;
             }
             position++;
             if ((tree[position-(id+4)].x-1) >= 0 && tree[position-(id+4)].y >= 0){
-                tree[position].x = tree[position-(id+4)].x -1;
-                tree[position].y = tree[position-(id+4)].y;
-                tree[position].previous = position-(id+4);
+                if (unitsArray[(tree[position-(id+4)].y*X) + tree[position-(id+4)].x-1] == 7 || unitsArray[(tree[position-(id+4)].y*X) + tree[position-(id+4)].x-1] == 8){
+                    tree[position].x = -1;
+                    tree[position].y = -1;
+                } else {
+                    tree[position].x = tree[position-(id+4)].x -1;
+                    tree[position].y = tree[position-(id+4)].y;
+                    tree[position].previous = position-(id+4);
+                }
             } else {
                 tree[position].x = -1;
                 tree[position].y = -1;
