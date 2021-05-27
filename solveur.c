@@ -3,7 +3,7 @@
 
 // Solveur
 // lit un fichier map.txt
-// renvoie un fichier ...
+// renvoie les positions de chaques déplacements
 
 #define X 15
 #define Y 10
@@ -13,13 +13,19 @@
 #define FILENAME "map.txt"
 
 struct Position{
-    int x;
-    int y;
+    unsigned char x;
+    unsigned char y;
+};
+
+struct Leaf{
+    unsigned char x;
+    unsigned char y;
+    int previous;
 };
 
 int main(void){
     // Lecture du fichier
-    int unitsArray[X*Y];
+    unsigned char unitsArray[X*Y];
     FILE * file = fopen(FILENAME, "r");
 
     if (file){
@@ -33,17 +39,17 @@ int main(void){
         }
         fclose(file);
     } else {
-        printf("Error : Can't open the file");
+        printf("\nError : Can't open the file");
         return EXIT_FAILURE;
     }
     
-    // Recherche des unités alliées (seulement le chevalier)
+    // Recherche des unités alliées         /!\ Déplacement de chevalier pour toutes les unitées
     int allyUnitsNumber = 0;
     struct Position allyUnitsTab[X*Y];
 
     for (int j = 0; j < Y; j++){
         for (int i = 0; i < X; i++){
-            if (unitsArray[(j*X)+i] == 1){
+            if (unitsArray[(j*X)+i] == 1 || unitsArray[(j*X)+i] == 2 || unitsArray[(j*X)+i] == 3){
                 allyUnitsNumber++;
                 allyUnitsTab[allyUnitsNumber-1].x = i;
                 allyUnitsTab[allyUnitsNumber-1].y = j;
@@ -51,7 +57,7 @@ int main(void){
         }
     }
     if (allyUnitsNumber == 0){
-        printf("There is no ally");
+        printf("\nThere is no ally");
         return EXIT_SUCCESS;
     }
 
@@ -69,28 +75,35 @@ int main(void){
         }
     }
     if (enemiesNumber == 0){
-        printf("There is no enemy");
+        printf("\nThere is no enemy");
         return EXIT_SUCCESS;
     }
 
     // Nombre de déplacements
-    int stamina = STAMINA - (enemiesNumber*STAMINAATTACK);
+    int moveNber = (STAMINA - (enemiesNumber*STAMINAATTACK))/STAMINAMOVE;
 
     // Création du tableau de l'arbre
-    int tabSize = 1;
-    for (int rank = 0; rank < (stamina/STAMINAMOVE); rank++){
+    int tabSize = 4;
+    for (int rank = 0; rank <= moveNber; rank++){
         tabSize *= 4;
     }
-    struct Position * tree = (struct Position *) malloc(++tabSize * sizeof(struct Position));
 
-    // Arbre
+    struct Leaf * tree = (struct Leaf *) malloc((tabSize+1) * sizeof(struct Leaf));
+    if (!tree){
+        printf("\nError : Can't create an array");
+        return EXIT_FAILURE;
+    }
+
+    // Arbre des déplacements
     int branches = 1;
     int position = 0;
     int id = 0;
 
-    tree[position].x = allyUnitsTab[0].x;
+    tree[position].x = allyUnitsTab[0].x;                // /!\ seulement 1 unité alliée
     tree[position].y = allyUnitsTab[0].y;
-    for (int rank = 1; rank < (stamina/STAMINAMOVE); rank++){
+    tree[position].previous = -1; // début de l'arbre
+
+    for (int rank = 0; rank <= moveNber; rank++){
         branches *= 4;
         
         for (int i = 0; i < branches; i+=4){
@@ -98,6 +111,7 @@ int main(void){
             if (tree[position-(id+1)].x >= 0 && (tree[position-(id+1)].y-1) >= 0){
                 tree[position].x = tree[position-(id+1)].x;
                 tree[position].y = tree[position-(id+1)].y -1;
+                tree[position].previous = position-(id+1);
             } else {
                 tree[position].x = -1;
                 tree[position].y = -1;
@@ -106,6 +120,7 @@ int main(void){
             if ((tree[position-(id+2)].x+1) >= 0 && tree[position-(id+2)].y >= 0){
                 tree[position].x = tree[position-(id+2)].x +1;
                 tree[position].y = tree[position-(id+2)].y;
+                tree[position].previous = position-(id+2);
             } else {
                 tree[position].x = -1;
                 tree[position].y = -1;
@@ -114,6 +129,7 @@ int main(void){
             if (tree[position-(id+3)].x >= 0 && (tree[position-(id+3)].y+1) >= 0){
                 tree[position].x = tree[position-(id+3)].x;
                 tree[position].y = tree[position-(id+3)].y +1;
+                tree[position].previous = position-(id+3);
             } else {
                 tree[position].x = -1;
                 tree[position].y = -1;
@@ -122,6 +138,7 @@ int main(void){
             if ((tree[position-(id+4)].x-1) >= 0 && tree[position-(id+4)].y >= 0){
                 tree[position].x = tree[position-(id+4)].x -1;
                 tree[position].y = tree[position-(id+4)].y;
+                tree[position].previous = position-(id+4);
             } else {
                 tree[position].x = -1;
                 tree[position].y = -1;
@@ -132,12 +149,22 @@ int main(void){
 
     // Recherche d'une réponse
     int i = 0;
-    while (i < tabSize && (tree[i].x != enemyUnitsTab[0].x || tree[i].y != enemyUnitsTab[0].y)){
+    while (i < tabSize && (tree[i].x != enemyUnitsTab[0].x || tree[i].y != enemyUnitsTab[0].y)){ // /!\ seulement 1 unité ennemie
         i++;
     }
 
     // Affichage
-    printf("(%d,%d)", tree[i].x, tree[i].y);
+    // Si il y a une solution
+    if (tree[i].x == enemyUnitsTab[0].x && tree[i].y == enemyUnitsTab[0].y){
+        while (tree[i].previous != -1){
+            i = tree[i].previous;
+            printf("\nposition : (%d,%d)", tree[i].x, tree[i].y);
+        }
+    }
+    // Si il n'y a pas de solution
+    else{
+        printf("\nIl n'y a pas de solution !");
+    }
 
     return EXIT_SUCCESS;
 }
