@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 // Solveur
 // lit un fichier map.txt
@@ -21,6 +22,7 @@ struct Leaf{
     char x;
     char y;
     int previous;
+    unsigned char rank;
 };
 
 int main(void){
@@ -45,12 +47,13 @@ int main(void){
     
     // Recherche des unités alliées         /!\ Déplacement de chevalier pour toutes les unitées
     int allyUnitsNumber = 0;
-    struct Position allyUnitsTab[X*Y];
+    struct Position * allyUnitsTab = (struct Position *) malloc(allyUnitsNumber * sizeof(struct Position));
 
     for (int j = 0; j < Y; j++){
         for (int i = 0; i < X; i++){
             if (unitsArray[(j*X)+i] == 1 || unitsArray[(j*X)+i] == 2 || unitsArray[(j*X)+i] == 3){
                 allyUnitsNumber++;
+                allyUnitsTab = (struct Position *) realloc(allyUnitsTab, allyUnitsNumber * sizeof(struct Position)); // sécurisation !!!!!!!!!!
                 allyUnitsTab[allyUnitsNumber-1].x = i;
                 allyUnitsTab[allyUnitsNumber-1].y = j;
             }
@@ -63,14 +66,15 @@ int main(void){
 
     // Recherche des unités ennemis
     int enemiesNumber = 0;
-    struct Position enemyUnitsTab[X*Y];
+    struct Position * enemyUnitsTab = (struct Position *) malloc(enemiesNumber * sizeof(struct Position));
 
     for (int j = 0; j < Y; j++){
         for (int i = 0; i < X; i++){
             if (unitsArray[(j*X)+i] == 4 || unitsArray[(j*X)+i] == 5 || unitsArray[(j*X)+i] == 6){
-                enemyUnitsTab[enemiesNumber].x = i;
-                enemyUnitsTab[enemiesNumber].y = j;
-                enemiesNumber++; 
+                enemiesNumber++;
+                enemyUnitsTab = (struct Position *) realloc(enemyUnitsTab, enemiesNumber * sizeof(struct Position)); // sécurisation !!!!!!!!!!
+                enemyUnitsTab[enemiesNumber-1].x = i;
+                enemyUnitsTab[enemiesNumber-1].y = j;
             }
         }
     }
@@ -80,105 +84,100 @@ int main(void){
     }
 
     // Nombre de déplacements
-    int moveNber = (STAMINA - (enemiesNumber*STAMINAATTACK))/STAMINAMOVE;
+    unsigned char moveNber = (STAMINA - (enemiesNumber*STAMINAATTACK))/STAMINAMOVE;
+
+    // Arbre des déplacements
+    int currentPosition = 0;
+    int previousPosition = 0;
+    unsigned char rank = 0;
+    bool found = false;
 
     // Création du tableau de l'arbre
-    int tabSize = 4;
-    for (int rank = 0; rank <= moveNber; rank++){
-        tabSize *= 4;
-    }
-
-    struct Leaf * tree = (struct Leaf *) malloc((tabSize+1) * sizeof(struct Leaf));
+    struct Leaf * tree = (struct Leaf *) malloc((currentPosition+1) * sizeof(struct Leaf));
     if (!tree){
         printf("\nError : Can't create an array");
         return EXIT_FAILURE;
     }
 
-    // Arbre des déplacements
-    int branches = 1;
-    int position = 0;
-    int id = 0;
+    tree[currentPosition].x = allyUnitsTab[0].x;     // /!\ seulement 1 unité alliée
+    tree[currentPosition].y = allyUnitsTab[0].y;
+    tree[currentPosition].previous = -1;
+    tree[currentPosition].rank = 0;
 
-    tree[position].x = allyUnitsTab[0].x;                // /!\ seulement 1 unité alliée
-    tree[position].y = allyUnitsTab[0].y;
-    tree[position].previous = -1; // début de l'arbre
+    while (found == false){
+        while (tree[previousPosition].rank == rank){
+            if (tree[previousPosition].y - 1 >= 0){
+                if (unitsArray[(tree[previousPosition].y - 1)*X + tree[previousPosition].x] != 7 && unitsArray[(tree[previousPosition].y - 1)*X + tree[previousPosition].x] != 8){
+                    currentPosition++;
+                    tree = (struct Leaf *) realloc(tree, (currentPosition+1) * sizeof(struct Leaf));
+                    tree[currentPosition].x = tree[previousPosition].x;
+                    tree[currentPosition].y = tree[previousPosition].y - 1;
+                    tree[currentPosition].previous = previousPosition;
+                    tree[currentPosition].rank = rank + 1;
 
-    for (int rank = 0; rank <= moveNber; rank++){
-        branches *= 4;
-        
-        for (int i = 0; i < branches; i+=4){
-            position++;
-            if (tree[position-(id+1)].x >= 0 && (tree[position-(id+1)].y-1) >= 0){ // si les coordonnées ne sortent pas du tableau
-                if (unitsArray[((tree[position-(id+1)].y-1)*X) + tree[position-(id+1)].x] == 7 || unitsArray[((tree[position-(id+1)].y-1)*X) + tree[position-(id+1)].x] == 8){ // si il y a des obstacles
-                    tree[position].x = -1;
-                    tree[position].y = -1;
-                } else {
-                    tree[position].x = tree[position-(id+1)].x;
-                    tree[position].y = tree[position-(id+1)].y -1;
-                    tree[position].previous = position-(id+1);
+                    if (tree[currentPosition].x == enemyUnitsTab[0].x && tree[currentPosition].y == enemyUnitsTab[0].y){      // /!\ seulement 1 unité ennemie
+                        found = true;
+                        break;
+                    }
                 }
-            } else {
-                tree[position].x = -1;
-                tree[position].y = -1;
             }
-            position++;
-            if ((tree[position-(id+2)].x+1) >= 0 && tree[position-(id+2)].y >= 0){
-                if (unitsArray[(tree[position-(id+2)].y*X) + tree[position-(id+2)].x+1] == 7 || unitsArray[(tree[position-(id+2)].y*X) + tree[position-(id+2)].x+1] == 8){
-                    tree[position].x = -1;
-                    tree[position].y = -1;
-                } else {
-                    tree[position].x = tree[position-(id+2)].x +1;
-                    tree[position].y = tree[position-(id+2)].y;
-                    tree[position].previous = position-(id+2);
+            if (tree[previousPosition].x + 1 < X){
+                if (unitsArray[tree[previousPosition].y*X + tree[previousPosition].x + 1] != 7 && unitsArray[tree[previousPosition].y*X + tree[previousPosition].x + 1] != 8){
+                    currentPosition++;
+                    tree = (struct Leaf *) realloc(tree, (currentPosition+1) * sizeof(struct Leaf));
+                    tree[currentPosition].x = tree[previousPosition].x + 1;
+                    tree[currentPosition].y = tree[previousPosition].y;
+                    tree[currentPosition].previous = previousPosition;
+                    tree[currentPosition].rank = rank + 1;
+
+                    if (tree[currentPosition].x == enemyUnitsTab[0].x && tree[currentPosition].y == enemyUnitsTab[0].y){
+                        found = true;
+                        break;
+                    }
                 }
-            } else {
-                tree[position].x = -1;
-                tree[position].y = -1;
             }
-            position++;
-            if (tree[position-(id+3)].x >= 0 && (tree[position-(id+3)].y+1) >= 0){
-                if (unitsArray[((tree[position-(id+3)].y+1)*X) + tree[position-(id+3)].x] == 7 || unitsArray[((tree[position-(id+3)].y+1)*X) + tree[position-(id+3)].x] == 8){
-                    tree[position].x = -1;
-                    tree[position].y = -1;
-                } else {
-                    tree[position].x = tree[position-(id+3)].x;
-                    tree[position].y = tree[position-(id+3)].y +1;
-                    tree[position].previous = position-(id+3);
+            if (tree[previousPosition].y + 1 < Y){
+                if (unitsArray[(tree[previousPosition].y + 1)*X + tree[previousPosition].x] != 7 && unitsArray[(tree[previousPosition].y + 1)*X + tree[previousPosition].x] != 8){
+                    currentPosition++;
+                    tree = (struct Leaf *) realloc(tree, (currentPosition+1) * sizeof(struct Leaf));
+                    tree[currentPosition].x = tree[previousPosition].x;
+                    tree[currentPosition].y = tree[previousPosition].y + 1;
+                    tree[currentPosition].previous = previousPosition;
+                    tree[currentPosition].rank = rank + 1;
+
+                    if (tree[currentPosition].x == enemyUnitsTab[0].x && tree[currentPosition].y == enemyUnitsTab[0].y){
+                        found = true;
+                        break;
+                    }
                 }
-            } else {
-                tree[position].x = -1;
-                tree[position].y = -1;
             }
-            position++;
-            if ((tree[position-(id+4)].x-1) >= 0 && tree[position-(id+4)].y >= 0){
-                if (unitsArray[(tree[position-(id+4)].y*X) + tree[position-(id+4)].x-1] == 7 || unitsArray[(tree[position-(id+4)].y*X) + tree[position-(id+4)].x-1] == 8){
-                    tree[position].x = -1;
-                    tree[position].y = -1;
-                } else {
-                    tree[position].x = tree[position-(id+4)].x -1;
-                    tree[position].y = tree[position-(id+4)].y;
-                    tree[position].previous = position-(id+4);
+            if (tree[previousPosition].x - 1 >= 0){
+                if (unitsArray[tree[previousPosition].y*X + tree[previousPosition].x - 1] != 7 && unitsArray[tree[previousPosition].y*X + tree[previousPosition].x - 1] != 8){
+                    currentPosition++;
+                    tree = (struct Leaf *) realloc(tree, (currentPosition+1) * sizeof(struct Leaf));
+                    tree[currentPosition].x = tree[previousPosition].x - 1;
+                    tree[currentPosition].y = tree[previousPosition].y;
+                    tree[currentPosition].previous = previousPosition;
+                    tree[currentPosition].rank = rank + 1;
+
+                    if (tree[currentPosition].x == enemyUnitsTab[0].x && tree[currentPosition].y == enemyUnitsTab[0].y){
+                        found = true;
+                        break;
+                    }
                 }
-            } else {
-                tree[position].x = -1;
-                tree[position].y = -1;
             }
-            id += 3;
+            previousPosition++;
         }
-    }
-
-    // Recherche d'une réponse
-    int i = 0;
-    while (i < tabSize && (tree[i].x != enemyUnitsTab[0].x || tree[i].y != enemyUnitsTab[0].y)){ // /!\ seulement 1 unité ennemie
-        i++;
+        rank++;
     }
 
     // Affichage
     // Si il y a une solution
-    if (tree[i].x == enemyUnitsTab[0].x && tree[i].y == enemyUnitsTab[0].y){
-        while (tree[i].previous != -1){
-            i = tree[i].previous;
-            printf("\nposition : (%d,%d)", tree[i].x, tree[i].y);
+    struct Leaf tmp = tree[currentPosition];
+    if (tree[currentPosition].x == enemyUnitsTab[0].x && tree[currentPosition].y == enemyUnitsTab[0].y){
+        while (tmp.previous != -1){
+            tmp = tree[tmp.previous];
+            printf("\nposition : (%d,%d)", tmp.x, tmp.y);
         }
     }
     // Si il n'y a pas de solution
