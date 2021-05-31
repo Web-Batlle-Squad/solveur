@@ -119,7 +119,6 @@ int main(void){
     int currentPosition = allyUnitsNumber-1;
     int previousPosition = 0;
     unsigned char rank = 0;
-    bool found = false;
 
     // Création du tableau de l'arbre
     struct Leaf * tree = (struct Leaf *) malloc(allyUnitsNumber * sizeof(struct Leaf));
@@ -138,7 +137,7 @@ int main(void){
         tree[i].unit = i;
     }
 
-    while (found == false && rank <= moveNber){
+    while (rank <= moveNber){
         while (tree[previousPosition].rank == rank){
             if (tree[previousPosition].y - 1 >= 0){
                 if (unitsArray[(tree[previousPosition].y - 1)*X + tree[previousPosition].x] != 7 && unitsArray[(tree[previousPosition].y - 1)*X + tree[previousPosition].x] != 8){
@@ -262,41 +261,43 @@ int main(void){
             }
 
             previousPosition++;
-
-            /*for (int i = 0; i < enemiesNumber; i++){
-                if (enemyUnitsTab[i].found == -1){
-                    found = false;
-                    break;
-                }
-                else{
-                    found = true;
-                }
-            }
-
-            if (found == true){
-                break;
-            }*/
         }
         rank++;
     }
 
     // Affichage
-    // Si il y a une solution
     struct Leaf tmp;
-    /*if (found == true){
-    }
-    // Si il n'y a pas de solution
-    else{
-        printf("\nIl n'y a pas de solution !");
-    }*/
+    char totalMoveTab[X*Y];
+    int totalMove = 0;
 
     for (int i = 0; i < enemiesNumber; i++){
         tmp = tree[enemyUnitsTab[i].found];
-        printf("\n\nUnité : %d", i+1);
-        while (tmp.previous != -1){
+
+        while (tree[tmp.previous].previous != -1){
             tmp = tree[tmp.previous];
-            printf("\nposition : (%d,%d)", tmp.x, tmp.y);
+            totalMoveTab[(tmp.y * X) + tmp.x] = 1;
         }
+    }
+
+    for (int i = 0; i < X*Y; i++){
+        if (totalMoveTab[i] == 1){
+            totalMove++;
+        }
+    }
+
+    // Si il y a une solution
+    if (totalMove <= moveNber){
+        for (int i = 0; i < enemiesNumber; i++){
+            tmp = tree[enemyUnitsTab[i].found];
+            printf("\n\nUnit : %d", i+1);
+
+            while (tmp.previous != -1){
+                tmp = tree[tmp.previous];
+                printf("\nPosition : (%d,%d)", tmp.x, tmp.y);
+            }
+        }
+    } else { // Si il n'y a pas de solution
+        printf("There is no solution !");
     }
 
     return EXIT_SUCCESS;
