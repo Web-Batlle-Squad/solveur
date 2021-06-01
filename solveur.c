@@ -140,7 +140,7 @@ int main(void){
     while (rank <= moveNber){
         while (tree[previousPosition].rank == rank){
             if (tree[previousPosition].y - 1 >= 0){
-                if (unitsArray[(tree[previousPosition].y - 1)*X + tree[previousPosition].x] != 7 && unitsArray[(tree[previousPosition].y - 1)*X + tree[previousPosition].x] != 8){
+                if (unitsArray[(tree[previousPosition].y - 1)*X + tree[previousPosition].x] != 7 && unitsArray[(tree[previousPosition].y - 1)*X + tree[previousPosition].x] != 8 && tree[previousPosition].priority < moveNber){
                     currentPosition++;
 
                     tree = (struct Leaf *) realloc(tree, (currentPosition+allyUnitsNumber) * sizeof(struct Leaf));
@@ -153,12 +153,11 @@ int main(void){
                     tree[currentPosition].y = tree[previousPosition].y - 1;
                     tree[currentPosition].previous = previousPosition;
                     tree[currentPosition].rank = rank + 1;
-                    tree[currentPosition].priority = tree[previousPosition].priority + 1;
                     tree[currentPosition].unit = tree[previousPosition].unit;
 
                     for (int i = 0; i < enemiesNumber; i++){
                         if (tree[currentPosition].x == enemyUnitsTab[i].x && tree[currentPosition].y == enemyUnitsTab[i].y){
-                            if (tree[currentPosition].priority < enemyUnitsTab[i].priority && tree[currentPosition].unit != enemyUnitsTab[i].unit){
+                            if ((tree[previousPosition].priority+1) < enemyUnitsTab[i].priority && tree[currentPosition].unit != enemyUnitsTab[i].unit){
                                 enemyUnitsTab[i].found = currentPosition;
                                 enemyUnitsTab[i].priority = tree[currentPosition].priority;
                                 enemyUnitsTab[i].unit = tree[currentPosition].unit;
@@ -170,7 +169,7 @@ int main(void){
                 }
             }
             if (tree[previousPosition].y + 1 < Y){
-                if (unitsArray[(tree[previousPosition].y + 1)*X + tree[previousPosition].x] != 7 && unitsArray[(tree[previousPosition].y + 1)*X + tree[previousPosition].x] != 8){
+                if (unitsArray[(tree[previousPosition].y + 1)*X + tree[previousPosition].x] != 7 && unitsArray[(tree[previousPosition].y + 1)*X + tree[previousPosition].x] != 8 && tree[previousPosition].priority < moveNber){
                     currentPosition++;
 
                     tree = (struct Leaf *) realloc(tree, (currentPosition+allyUnitsNumber) * sizeof(struct Leaf));
@@ -183,12 +182,11 @@ int main(void){
                     tree[currentPosition].y = tree[previousPosition].y + 1;
                     tree[currentPosition].previous = previousPosition;
                     tree[currentPosition].rank = rank + 1;
-                    tree[currentPosition].priority = tree[previousPosition].priority + 1;
                     tree[currentPosition].unit = tree[previousPosition].unit;
 
                     for (int i = 0; i < enemiesNumber; i++){
                         if (tree[currentPosition].x == enemyUnitsTab[i].x && tree[currentPosition].y == enemyUnitsTab[i].y){
-                            if (tree[currentPosition].priority < enemyUnitsTab[i].priority && tree[currentPosition].unit != enemyUnitsTab[i].unit){
+                            if ((tree[previousPosition].priority+1) < enemyUnitsTab[i].priority && tree[currentPosition].unit != enemyUnitsTab[i].unit){
                                 enemyUnitsTab[i].found = currentPosition;
                                 enemyUnitsTab[i].priority = tree[currentPosition].priority;
                                 enemyUnitsTab[i].unit = tree[currentPosition].unit;
@@ -200,7 +198,7 @@ int main(void){
                 }
             }
             if (tree[previousPosition].x + 1 < X){
-                if (unitsArray[tree[previousPosition].y*X + tree[previousPosition].x + 1] != 7 && unitsArray[tree[previousPosition].y*X + tree[previousPosition].x + 1] != 8){
+                if (unitsArray[tree[previousPosition].y*X + tree[previousPosition].x + 1] != 7 && unitsArray[tree[previousPosition].y*X + tree[previousPosition].x + 1] != 8 && tree[previousPosition].priority < moveNber){
                     currentPosition++;
 
                     tree = (struct Leaf *) realloc(tree, (currentPosition+allyUnitsNumber) * sizeof(struct Leaf));
@@ -213,12 +211,11 @@ int main(void){
                     tree[currentPosition].y = tree[previousPosition].y;
                     tree[currentPosition].previous = previousPosition;
                     tree[currentPosition].rank = rank + 1;
-                    tree[currentPosition].priority = tree[previousPosition].priority + 1;
                     tree[currentPosition].unit = tree[previousPosition].unit;
 
                     for (int i = 0; i < enemiesNumber; i++){
                         if (tree[currentPosition].x == enemyUnitsTab[i].x && tree[currentPosition].y == enemyUnitsTab[i].y){
-                            if (tree[currentPosition].priority < enemyUnitsTab[i].priority && tree[currentPosition].unit != enemyUnitsTab[i].unit){
+                            if ((tree[previousPosition].priority+1) < enemyUnitsTab[i].priority && tree[currentPosition].unit != enemyUnitsTab[i].unit){
                                 enemyUnitsTab[i].found = currentPosition;
                                 enemyUnitsTab[i].priority = tree[currentPosition].priority;
                                 enemyUnitsTab[i].unit = tree[currentPosition].unit;
@@ -230,7 +227,7 @@ int main(void){
                 }
             }
             if (tree[previousPosition].x - 1 >= 0){
-                if (unitsArray[tree[previousPosition].y*X + tree[previousPosition].x - 1] != 7 && unitsArray[tree[previousPosition].y*X + tree[previousPosition].x - 1] != 8){
+                if (unitsArray[tree[previousPosition].y*X + tree[previousPosition].x - 1] != 7 && unitsArray[tree[previousPosition].y*X + tree[previousPosition].x - 1] != 8 && tree[previousPosition].priority < moveNber){
                     currentPosition++;
 
                     tree = (struct Leaf *) realloc(tree, (currentPosition+allyUnitsNumber) * sizeof(struct Leaf));
@@ -243,12 +240,11 @@ int main(void){
                     tree[currentPosition].y = tree[previousPosition].y;
                     tree[currentPosition].previous = previousPosition;
                     tree[currentPosition].rank = rank + 1;
-                    tree[currentPosition].priority = tree[previousPosition].priority + 1;
                     tree[currentPosition].unit = tree[previousPosition].unit;
 
                     for (int i = 0; i < enemiesNumber; i++){
                         if (tree[currentPosition].x == enemyUnitsTab[i].x && tree[currentPosition].y == enemyUnitsTab[i].y){
-                            if (tree[currentPosition].priority < enemyUnitsTab[i].priority && tree[currentPosition].unit != enemyUnitsTab[i].unit){
+                            if ((tree[previousPosition].priority+1) < enemyUnitsTab[i].priority && tree[currentPosition].unit != enemyUnitsTab[i].unit){
                                 enemyUnitsTab[i].found = currentPosition;
                                 enemyUnitsTab[i].priority = tree[currentPosition].priority;
                                 enemyUnitsTab[i].unit = tree[currentPosition].unit;
@@ -259,7 +255,6 @@ int main(void){
                     tree[currentPosition].priority = tree[previousPosition].priority + 1;
                 }
             }
-
             previousPosition++;
         }
         rank++;
