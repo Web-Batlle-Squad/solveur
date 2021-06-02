@@ -13,9 +13,11 @@
 #define STAMINAATTACK 4
 #define FILENAME "map.txt"
 
-struct Position{
+struct Ally{
     char x;
     char y;
+    char class;
+    unsigned char priority;
 };
 
 struct Enemy{
@@ -23,7 +25,8 @@ struct Enemy{
     char y;
     int found;
     char unit;
-    char priority;
+    char class;
+    unsigned char priority;
 };
 
 struct Leaf{
@@ -31,7 +34,7 @@ struct Leaf{
     char y;
     int previous;
     unsigned char rank;
-    char priority;
+    unsigned char priority;
     char unit;
 };
 
@@ -57,7 +60,7 @@ int main(void){
     
     // Recherche des unités alliées
     int allyUnitsNumber = 0;
-    struct Position * allyUnitsTab = (struct Position *) malloc(allyUnitsNumber * sizeof(struct Position));
+    struct Ally * allyUnitsTab = (struct Ally *) malloc(allyUnitsNumber * sizeof(struct Ally));
     if (!allyUnitsTab){ // Securisation
         printf("Dynamic allocation error !");
         return EXIT_FAILURE;
@@ -67,13 +70,15 @@ int main(void){
         for (int i = 0; i < X; i++){
             if (unitsArray[(j*X)+i] == 1 || unitsArray[(j*X)+i] == 2 || unitsArray[(j*X)+i] == 3){
                 allyUnitsNumber++;
-                allyUnitsTab = (struct Position *) realloc(allyUnitsTab, allyUnitsNumber * sizeof(struct Position));
+                allyUnitsTab = (struct Ally *) realloc(allyUnitsTab, allyUnitsNumber * sizeof(struct Ally));
                 if (!allyUnitsTab){ // Securisation
                     printf("Dynamic allocation error !");
                     return EXIT_FAILURE;
                 }
                 allyUnitsTab[allyUnitsNumber-1].x = i;
                 allyUnitsTab[allyUnitsNumber-1].y = j;
+                allyUnitsTab[allyUnitsNumber-1].class = unitsArray[(j*X)+i];
+                allyUnitsTab[allyUnitsNumber-1].priority = 99;
             }
         }
     }
@@ -104,6 +109,7 @@ int main(void){
                 enemyUnitsTab[enemiesNumber-1].found = -1;
                 enemyUnitsTab[enemiesNumber-1].priority = 99;
                 enemyUnitsTab[enemiesNumber-1].unit = -1;
+                enemyUnitsTab[enemiesNumber-1].class = unitsArray[(j*X)+i];
             }
         }
     }
@@ -140,7 +146,7 @@ int main(void){
     while (rank <= moveNber){
         while (tree[previousPosition].rank == rank){
             if (tree[previousPosition].y - 1 >= 0){
-                if (unitsArray[(tree[previousPosition].y - 1)*X + tree[previousPosition].x] != 7 && unitsArray[(tree[previousPosition].y - 1)*X + tree[previousPosition].x] != 8 && tree[previousPosition].priority < moveNber){
+                if (unitsArray[(tree[previousPosition].y - 1)*X + tree[previousPosition].x] != 7 && tree[previousPosition].priority < moveNber){
                     currentPosition++;
 
                     tree = (struct Leaf *) realloc(tree, (currentPosition+allyUnitsNumber) * sizeof(struct Leaf));
@@ -154,22 +160,44 @@ int main(void){
                     tree[currentPosition].previous = previousPosition;
                     tree[currentPosition].rank = rank + 1;
                     tree[currentPosition].unit = tree[previousPosition].unit;
+                    if (unitsArray[(tree[previousPosition].y)*X + tree[previousPosition].x] == 8){
+                        tree[currentPosition].priority = tree[previousPosition].priority + 2;
+                    } else {
+                        tree[currentPosition].priority = tree[previousPosition].priority + 1;
+                    }
+                    
 
                     for (int i = 0; i < enemiesNumber; i++){
-                        if (tree[currentPosition].x == enemyUnitsTab[i].x && tree[currentPosition].y == enemyUnitsTab[i].y){
-                            if ((tree[previousPosition].priority+1) < enemyUnitsTab[i].priority && tree[currentPosition].unit != enemyUnitsTab[i].unit){
-                                enemyUnitsTab[i].found = currentPosition;
-                                enemyUnitsTab[i].priority = tree[currentPosition].priority;
-                                enemyUnitsTab[i].unit = tree[currentPosition].unit;
-                                tree[previousPosition].priority = 0;
+                        // Si il y a un ennemi et qu'une unité ne l'a pas déjà tué
+                        if (tree[currentPosition].x == enemyUnitsTab[i].x && tree[currentPosition].y == enemyUnitsTab[i].y && tree[currentPosition].unit != enemyUnitsTab[i].unit){
+                            // triangle des forces
+                            if ((allyUnitsTab[(int) tree[currentPosition].unit].class == 1 && enemyUnitsTab[i].class == 5) || (allyUnitsTab[(int) tree[currentPosition].unit].class == 2 && enemyUnitsTab[i].class == 6) || (allyUnitsTab[(int) tree[currentPosition].unit].class == 3 && enemyUnitsTab[i].class == 4)){
+                                if (tree[currentPosition].priority < enemyUnitsTab[i].priority && tree[currentPosition].priority < allyUnitsTab[(int) tree[currentPosition].unit].priority){
+                                    enemyUnitsTab[i].found = currentPosition;
+                                    enemyUnitsTab[i].unit = tree[currentPosition].unit;
+                                    tree[previousPosition].priority = 0;
+                                    enemyUnitsTab[i].priority = tree[currentPosition].priority;
+                                    allyUnitsTab[(int) tree[currentPosition].unit].priority = tree[currentPosition].priority;
+
+                                    printf("\n(%d;%d)", tree[currentPosition].x, tree[currentPosition].y);        
+                                }
+                            } else {
+                                if ((tree[currentPosition].priority + STAMINAATTACK/2) < enemyUnitsTab[i].priority && (tree[currentPosition].priority + STAMINAATTACK/2) < allyUnitsTab[(int) tree[currentPosition].unit].priority){
+                                    enemyUnitsTab[i].found = currentPosition;
+                                    enemyUnitsTab[i].unit = tree[currentPosition].unit;
+                                    tree[previousPosition].priority = STAMINAATTACK/2;
+                                    enemyUnitsTab[i].priority = tree[currentPosition].priority + STAMINAATTACK/2;
+                                    allyUnitsTab[(int) tree[currentPosition].unit].priority = tree[currentPosition].priority + STAMINAATTACK/2;
+
+                                    printf("\n// (%d;%d)", tree[currentPosition].x, tree[currentPosition].y);                   
+                                }
                             }
                         }
                     }
-                    tree[currentPosition].priority = tree[previousPosition].priority + 1;
                 }
             }
             if (tree[previousPosition].y + 1 < Y){
-                if (unitsArray[(tree[previousPosition].y + 1)*X + tree[previousPosition].x] != 7 && unitsArray[(tree[previousPosition].y + 1)*X + tree[previousPosition].x] != 8 && tree[previousPosition].priority < moveNber){
+                if (unitsArray[(tree[previousPosition].y + 1)*X + tree[previousPosition].x] != 7 && tree[previousPosition].priority < moveNber){
                     currentPosition++;
 
                     tree = (struct Leaf *) realloc(tree, (currentPosition+allyUnitsNumber) * sizeof(struct Leaf));
@@ -183,22 +211,43 @@ int main(void){
                     tree[currentPosition].previous = previousPosition;
                     tree[currentPosition].rank = rank + 1;
                     tree[currentPosition].unit = tree[previousPosition].unit;
+                    if (unitsArray[(tree[previousPosition].y)*X + tree[previousPosition].x] == 8){
+                        tree[currentPosition].priority = tree[previousPosition].priority + 2;
+                    } else {
+                        tree[currentPosition].priority = tree[previousPosition].priority + 1;
+                    }
 
                     for (int i = 0; i < enemiesNumber; i++){
-                        if (tree[currentPosition].x == enemyUnitsTab[i].x && tree[currentPosition].y == enemyUnitsTab[i].y){
-                            if ((tree[previousPosition].priority+1) < enemyUnitsTab[i].priority && tree[currentPosition].unit != enemyUnitsTab[i].unit){
-                                enemyUnitsTab[i].found = currentPosition;
-                                enemyUnitsTab[i].priority = tree[currentPosition].priority;
-                                enemyUnitsTab[i].unit = tree[currentPosition].unit;
-                                tree[previousPosition].priority = 0;
+                        // Si il y a un ennemi et qu'une unité ne l'a pas déjà tué
+                        if (tree[currentPosition].x == enemyUnitsTab[i].x && tree[currentPosition].y == enemyUnitsTab[i].y && tree[currentPosition].unit != enemyUnitsTab[i].unit){
+                            // triangle des forces
+                            if ((allyUnitsTab[(int) tree[currentPosition].unit].class == 1 && enemyUnitsTab[i].class == 5) || (allyUnitsTab[(int) tree[currentPosition].unit].class == 2 && enemyUnitsTab[i].class == 6) || (allyUnitsTab[(int) tree[currentPosition].unit].class == 3 && enemyUnitsTab[i].class == 4)){
+                                if ((tree[currentPosition].priority) < enemyUnitsTab[i].priority && tree[currentPosition].priority < allyUnitsTab[(int) tree[currentPosition].unit].priority){
+                                    enemyUnitsTab[i].found = currentPosition;
+                                    enemyUnitsTab[i].unit = tree[currentPosition].unit;
+                                    tree[previousPosition].priority = 0;
+                                    enemyUnitsTab[i].priority = tree[currentPosition].priority;
+                                    allyUnitsTab[(int) tree[currentPosition].unit].priority = tree[currentPosition].priority;
+
+                                    printf("\n(%d;%d)", tree[currentPosition].x, tree[currentPosition].y);   
+                                }
+                            } else {
+                                if ((tree[currentPosition].priority + STAMINAATTACK/2) < enemyUnitsTab[i].priority && (tree[currentPosition].priority + STAMINAATTACK/2) < allyUnitsTab[(int) tree[currentPosition].unit].priority){
+                                    enemyUnitsTab[i].found = currentPosition;
+                                    enemyUnitsTab[i].unit = tree[currentPosition].unit;
+                                    tree[previousPosition].priority = STAMINAATTACK/2;
+                                    enemyUnitsTab[i].priority = tree[currentPosition].priority + STAMINAATTACK/2;
+                                    allyUnitsTab[(int) tree[currentPosition].unit].priority = tree[currentPosition].priority + STAMINAATTACK/2;
+
+                                    printf("\n// (%d;%d)", tree[currentPosition].x, tree[currentPosition].y);
+                                }
                             }
                         }
                     }
-                    tree[currentPosition].priority = tree[previousPosition].priority + 1;
                 }
             }
             if (tree[previousPosition].x + 1 < X){
-                if (unitsArray[tree[previousPosition].y*X + tree[previousPosition].x + 1] != 7 && unitsArray[tree[previousPosition].y*X + tree[previousPosition].x + 1] != 8 && tree[previousPosition].priority < moveNber){
+                if (unitsArray[tree[previousPosition].y*X + tree[previousPosition].x + 1] != 7 && tree[previousPosition].priority < moveNber){
                     currentPosition++;
 
                     tree = (struct Leaf *) realloc(tree, (currentPosition+allyUnitsNumber) * sizeof(struct Leaf));
@@ -212,22 +261,43 @@ int main(void){
                     tree[currentPosition].previous = previousPosition;
                     tree[currentPosition].rank = rank + 1;
                     tree[currentPosition].unit = tree[previousPosition].unit;
+                    if (unitsArray[(tree[previousPosition].y)*X + tree[previousPosition].x] == 8){
+                        tree[currentPosition].priority = tree[previousPosition].priority + 2;
+                    } else {
+                        tree[currentPosition].priority = tree[previousPosition].priority + 1;
+                    }
 
                     for (int i = 0; i < enemiesNumber; i++){
-                        if (tree[currentPosition].x == enemyUnitsTab[i].x && tree[currentPosition].y == enemyUnitsTab[i].y){
-                            if ((tree[previousPosition].priority+1) < enemyUnitsTab[i].priority && tree[currentPosition].unit != enemyUnitsTab[i].unit){
-                                enemyUnitsTab[i].found = currentPosition;
-                                enemyUnitsTab[i].priority = tree[currentPosition].priority;
-                                enemyUnitsTab[i].unit = tree[currentPosition].unit;
-                                tree[previousPosition].priority = 0;
+                        // Si il y a un ennemi et qu'une unité ne l'a pas déjà tué
+                        if (tree[currentPosition].x == enemyUnitsTab[i].x && tree[currentPosition].y == enemyUnitsTab[i].y && tree[currentPosition].unit != enemyUnitsTab[i].unit){
+                            // triangle des forces
+                            if ((allyUnitsTab[(int) tree[currentPosition].unit].class == 1 && enemyUnitsTab[i].class == 5) || (allyUnitsTab[(int) tree[currentPosition].unit].class == 2 && enemyUnitsTab[i].class == 6) || (allyUnitsTab[(int) tree[currentPosition].unit].class == 3 && enemyUnitsTab[i].class == 4)){
+                                if (tree[currentPosition].priority < enemyUnitsTab[i].priority && tree[currentPosition].priority < allyUnitsTab[(int) tree[currentPosition].unit].priority){
+                                    enemyUnitsTab[i].found = currentPosition;
+                                    enemyUnitsTab[i].unit = tree[currentPosition].unit;
+                                    tree[previousPosition].priority = 0;
+                                    enemyUnitsTab[i].priority = tree[currentPosition].priority;
+                                    allyUnitsTab[(int) tree[currentPosition].unit].priority = tree[currentPosition].priority;
+
+                                    printf("\n(%d;%d)", tree[currentPosition].x, tree[currentPosition].y);
+                                }
+                            } else {
+                                if ((tree[currentPosition].priority + STAMINAATTACK/2) < enemyUnitsTab[i].priority && (tree[currentPosition].priority + STAMINAATTACK/2) < allyUnitsTab[(int) tree[currentPosition].unit].priority){
+                                    enemyUnitsTab[i].found = currentPosition;
+                                    enemyUnitsTab[i].unit = tree[currentPosition].unit;
+                                    tree[previousPosition].priority = STAMINAATTACK/2;
+                                    enemyUnitsTab[i].priority = tree[currentPosition].priority + STAMINAATTACK/2;
+                                    allyUnitsTab[(int) tree[currentPosition].unit].priority = tree[currentPosition].priority + STAMINAATTACK/2;
+
+                                    printf("\n// (%d;%d)", tree[currentPosition].x, tree[currentPosition].y);
+                                }
                             }
                         }
                     }
-                    tree[currentPosition].priority = tree[previousPosition].priority + 1;
                 }
             }
             if (tree[previousPosition].x - 1 >= 0){
-                if (unitsArray[tree[previousPosition].y*X + tree[previousPosition].x - 1] != 7 && unitsArray[tree[previousPosition].y*X + tree[previousPosition].x - 1] != 8 && tree[previousPosition].priority < moveNber){
+                if (unitsArray[tree[previousPosition].y*X + tree[previousPosition].x - 1] != 7 && tree[previousPosition].priority < moveNber){
                     currentPosition++;
 
                     tree = (struct Leaf *) realloc(tree, (currentPosition+allyUnitsNumber) * sizeof(struct Leaf));
@@ -241,18 +311,39 @@ int main(void){
                     tree[currentPosition].previous = previousPosition;
                     tree[currentPosition].rank = rank + 1;
                     tree[currentPosition].unit = tree[previousPosition].unit;
+                    if (unitsArray[(tree[previousPosition].y)*X + tree[previousPosition].x] == 8){
+                        tree[currentPosition].priority = tree[previousPosition].priority + 2;
+                    } else {
+                        tree[currentPosition].priority = tree[previousPosition].priority + 1;
+                    }
 
                     for (int i = 0; i < enemiesNumber; i++){
-                        if (tree[currentPosition].x == enemyUnitsTab[i].x && tree[currentPosition].y == enemyUnitsTab[i].y){
-                            if ((tree[previousPosition].priority+1) < enemyUnitsTab[i].priority && tree[currentPosition].unit != enemyUnitsTab[i].unit){
-                                enemyUnitsTab[i].found = currentPosition;
-                                enemyUnitsTab[i].priority = tree[currentPosition].priority;
-                                enemyUnitsTab[i].unit = tree[currentPosition].unit;
-                                tree[previousPosition].priority = 0;
+                        // Si il y a un ennemi et qu'une unité ne l'a pas déjà tué
+                        if (tree[currentPosition].x == enemyUnitsTab[i].x && tree[currentPosition].y == enemyUnitsTab[i].y && tree[currentPosition].unit != enemyUnitsTab[i].unit){
+                            // triangle des forces
+                            if ((allyUnitsTab[(int) tree[currentPosition].unit].class == 1 && enemyUnitsTab[i].class == 5) || (allyUnitsTab[(int) tree[currentPosition].unit].class == 2 && enemyUnitsTab[i].class == 6) || (allyUnitsTab[(int) tree[currentPosition].unit].class == 3 && enemyUnitsTab[i].class == 4)){
+                                if (tree[currentPosition].priority < enemyUnitsTab[i].priority && tree[currentPosition].priority < allyUnitsTab[(int) tree[currentPosition].unit].priority){
+                                    enemyUnitsTab[i].found = currentPosition;
+                                    enemyUnitsTab[i].unit = tree[currentPosition].unit;
+                                    tree[previousPosition].priority = 0;
+                                    enemyUnitsTab[i].priority = tree[currentPosition].priority;
+                                    allyUnitsTab[(int) tree[currentPosition].unit].priority = tree[currentPosition].priority;
+
+                                    printf("\n(%d;%d)", tree[currentPosition].x, tree[currentPosition].y);
+                                }
+                            } else {
+                                if ((tree[currentPosition].priority + STAMINAATTACK/2) < enemyUnitsTab[i].priority && (tree[currentPosition].priority + STAMINAATTACK/2) < allyUnitsTab[(int) tree[currentPosition].unit].priority){
+                                    enemyUnitsTab[i].found = currentPosition;
+                                    enemyUnitsTab[i].unit = tree[currentPosition].unit;
+                                    tree[previousPosition].priority = STAMINAATTACK/2;
+                                    enemyUnitsTab[i].priority = tree[currentPosition].priority + STAMINAATTACK/2;
+                                    allyUnitsTab[(int) tree[currentPosition].unit].priority = tree[currentPosition].priority + STAMINAATTACK/2;
+
+                                    printf("\n// (%d;%d)", tree[currentPosition].x, tree[currentPosition].y);
+                                }
                             }
                         }
                     }
-                    tree[currentPosition].priority = tree[previousPosition].priority + 1;
                 }
             }
             previousPosition++;
@@ -292,7 +383,7 @@ int main(void){
             }
         }
     } else { // Si il n'y a pas de solution
-        printf("There is no solution !");
+        printf("\nThere is no solution !");
     }
 
     return EXIT_SUCCESS;
