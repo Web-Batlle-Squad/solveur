@@ -146,6 +146,7 @@ int main(void){
     while (rank <= moveNber){
         while (tree[previousPosition].rank == rank){
             if (tree[previousPosition].y - 1 >= 0){
+                // Si il n'y a pas d'obstacles
                 if (unitsArray[(tree[previousPosition].y - 1)*X + tree[previousPosition].x] != 7 && tree[previousPosition].priority < moveNber){
                     currentPosition++;
 
@@ -197,6 +198,7 @@ int main(void){
                 }
             }
             if (tree[previousPosition].y + 1 < Y){
+                // Si il n'y a pas d'obstacles
                 if (unitsArray[(tree[previousPosition].y + 1)*X + tree[previousPosition].x] != 7 && tree[previousPosition].priority < moveNber){
                     currentPosition++;
 
@@ -247,6 +249,7 @@ int main(void){
                 }
             }
             if (tree[previousPosition].x + 1 < X){
+                // Si il n'y a pas d'obstacles
                 if (unitsArray[tree[previousPosition].y*X + tree[previousPosition].x + 1] != 7 && tree[previousPosition].priority < moveNber){
                     currentPosition++;
 
@@ -297,6 +300,7 @@ int main(void){
                 }
             }
             if (tree[previousPosition].x - 1 >= 0){
+                // Si il n'y a pas d'obstacles
                 if (unitsArray[tree[previousPosition].y*X + tree[previousPosition].x - 1] != 7 && tree[previousPosition].priority < moveNber){
                     currentPosition++;
 
@@ -353,37 +357,43 @@ int main(void){
 
     // Affichage
     struct Leaf tmp;
-    char totalMoveTab[X*Y];
+    char totalMoveTab[X * Y];
     int totalMove = 0;
 
-    for (int i = 0; i < enemiesNumber; i++){
-        tmp = tree[enemyUnitsTab[i].found];
+    for (int i = 0; i < enemiesNumber; i++) {
+        if (enemyUnitsTab[i].found != -1){
+            tmp = tree[enemyUnitsTab[i].found];
 
-        while (tree[tmp.previous].previous != -1){
-            tmp = tree[tmp.previous];
-            totalMoveTab[(tmp.y * X) + tmp.x] = 1;
+            while (tree[tmp.previous].previous != -1) {
+                tmp = tree[tmp.previous];
+                totalMoveTab[(tmp.y * X) + tmp.x] = 1;
+            }
         }
     }
 
-    for (int i = 0; i < X*Y; i++){
-        if (totalMoveTab[i] == 1){
+    for (int i = 0; i < X * Y; i++) {
+        if (totalMoveTab[i] == 1) {
             totalMove++;
         }
     }
 
     // Si il y a une solution
-    if (totalMove <= moveNber){
-        for (int i = 0; i < enemiesNumber; i++){
-            tmp = tree[enemyUnitsTab[i].found];
-            printf("\n\nUnit : %d", i+1);
+    if (totalMove <= moveNber) {
+        for (int i = 0; i < enemiesNumber; i++) {
+            if (enemyUnitsTab[i].found != -1){
+                tmp = tree[enemyUnitsTab[i].found];
+                printf("\n\nUnit : %d", i + 1);
 
-            while (tmp.previous != -1){
-                tmp = tree[tmp.previous];
-                printf("\nPosition : (%d,%d)", tmp.x, tmp.y);
+                while (tree[tmp.previous].previous != -1) {
+                    tmp = tree[tmp.previous];
+                    printf("\nPosition : (%d,%d)", tmp.x, tmp.y);
+                }
             }
         }
-    } else { // Si il n'y a pas de solution
+    }
+    else { // Si il n'y a pas de solution
         printf("\nThere is no solution !");
+        return EXIT_FAILURE;
     }
 
     return EXIT_SUCCESS;
